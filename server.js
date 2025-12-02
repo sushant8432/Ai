@@ -1,14 +1,19 @@
-// server.js - ENHANCED VERSION with Complete Knowledge Base
+// server.js - FIXED FOR VERCEL DEPLOYMENT
 
 const fetch = require('node-fetch');
 const express = require('express');
 const cors = require('cors');
 
 const app = express();
-const PORT = 5000;
+const PORT = process.env.PORT || 5000;
 
-// Middleware
-app.use(cors());
+// CORS Configuration - Allow your frontend
+app.use(cors({
+  origin: ['https://ai-hso7.vercel.app', 'http://localhost:3000'],
+  methods: ['GET', 'POST', 'OPTIONS'],
+  credentials: true
+}));
+
 app.use(express.json());
 
 // ==============================================
@@ -174,7 +179,7 @@ const KNOWLEDGE_BASE = {
 };
 
 // ==============================================
-// SMART KEYWORD MATCHING FUNCTION WITH SCORING
+// SMART KEYWORD MATCHING FUNCTION
 // ==============================================
 function findBestMatch(userMessage) {
   const msg = userMessage.toLowerCase().trim();
@@ -182,7 +187,6 @@ function findBestMatch(userMessage) {
   let bestMatch = null;
   let highestScore = 0;
   
-  // Check each topic in knowledge base
   for (const [topic, data] of Object.entries(KNOWLEDGE_BASE)) {
     let score = 0;
     let matchedKeywords = [];
@@ -190,24 +194,18 @@ function findBestMatch(userMessage) {
     for (const keyword of data.keywords) {
       const keywordLower = keyword.toLowerCase();
       
-      // Exact phrase match (highest priority)
       if (msg === keywordLower) {
         score += 100;
         matchedKeywords.push(keyword);
-      }
-      // Word boundary match (high priority)
-      else if (new RegExp(`\\b${keywordLower}\\b`, 'i').test(msg)) {
+      } else if (new RegExp(`\\b${keywordLower}\\b`, 'i').test(msg)) {
         score += 50;
         matchedKeywords.push(keyword);
-      }
-      // Contains match (lower priority)
-      else if (msg.includes(keywordLower)) {
+      } else if (msg.includes(keywordLower)) {
         score += 10;
         matchedKeywords.push(keyword);
       }
     }
     
-    // Update best match if this score is higher
     if (score > highestScore && score > 0) {
       highestScore = score;
       bestMatch = {
@@ -219,25 +217,22 @@ function findBestMatch(userMessage) {
     }
   }
   
-  // Return the best match if score is high enough
   if (bestMatch && bestMatch.score >= 10) {
-    console.log(`✅ Best Match: ${bestMatch.topic} (Score: ${bestMatch.score})`);
+    console.log(`✅ Match: ${bestMatch.topic} (Score: ${bestMatch.score})`);
     return bestMatch.answer;
   }
   
-  // Default fallback
   return null;
 }
 
 // ==============================================
-// GENERAL FALLBACK RESPONSES
+// FALLBACK RESPONSES
 // ==============================================
 const GENERAL_FALLBACK = [
   "Thank you for your question! 😊\n\nFor detailed information:\n📞 Call: 0135-2776225\n📧 Email: info@vantagehall.org\n📱 Admissions: +91-8191912999\n\nYou can also ask me about admissions, fees, facilities, medical care, sports, or our curriculum!",
   "I'd be happy to help! For specific details:\n📞 0135-2776225\n📧 info@vantagehall.org\n\nFeel free to ask about our hostel, academics, career guidance, or any other aspect of school life!"
 ];
 
-// Greeting responses
 const GREETINGS = [
   "Hello! 👋 Welcome to Vantage Hall Girls' Residential School. How can I help you today?",
   "Hi there! I'm here to answer your questions about Vantage Hall. What would you like to know?"
@@ -248,14 +243,14 @@ const GREETINGS = [
 // ==============================================
 async function callGeminiAPI(prompt) {
   const modelNames = [
-    'gemini-2.5-flash',
-    'gemini-2.0-flash',
-    'gemini-2.0-flash-001'
+    'gemini-2.0-flash-exp',
+    'gemini-1.5-flash',
+    'gemini-1.5-pro'
   ];
 
   for (const modelName of modelNames) {
     try {
-      const url = `https://generativelanguage.googleapis.com/v1/models/${modelName}:generateContent?key=${GEMINI_API_KEY}`;
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${GEMINI_API_KEY}`;
       
       const response = await fetch(url, {
         method: 'POST',
@@ -274,10 +269,11 @@ async function callGeminiAPI(prompt) {
       if (response.ok) {
         const data = await response.json();
         const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-        console.log(`✅ Success with model: ${modelName}`);
+        console.log(`✅ Success with: ${modelName}`);
         return text;
       }
     } catch (error) {
+      console.log(`Failed with ${modelName}, trying next...`);
       continue;
     }
   }
@@ -291,8 +287,8 @@ async function callGeminiAPI(prompt) {
 app.get('/', (req, res) => {
   res.json({
     status: '✅ Server Running',
-    message: 'Vantage Hall Chatbot API - Enhanced Version',
-    model: 'Gemini AI + Comprehensive Knowledge Base',
+    message: 'Vantage Hall Chatbot API',
+    model: 'Gemini AI + Knowledge Base',
     endpoints: {
       health: '/api/health',
       chat: '/api/chat (POST)',
@@ -313,10 +309,10 @@ app.get('/api/health', (req, res) => {
 // ==============================================
 app.get('/api/test', async (req, res) => {
   try {
-    const reply = await callGeminiAPI('Say "Hello! The Gemini API is working!" in one sentence.');
+    const reply = await callGeminiAPI('Say "API is working!" in one sentence.');
     res.json({ 
       success: true, 
-      message: '✅ Gemini API is WORKING!',
+      message: '✅ Gemini API Working',
       testReply: reply,
       knowledgeBaseTopics: Object.keys(KNOWLEDGE_BASE).length
     });
@@ -324,14 +320,14 @@ app.get('/api/test', async (req, res) => {
     res.json({ 
       success: false, 
       error: error.message,
-      fallbackMode: 'Enabled - Using comprehensive knowledge base',
+      fallbackMode: 'Knowledge base active',
       knowledgeBaseTopics: Object.keys(KNOWLEDGE_BASE).length
     });
   }
 });
 
 // ==============================================
-// CHAT ENDPOINT - ENHANCED WITH KNOWLEDGE BASE
+// CHAT ENDPOINT
 // ==============================================
 app.post('/api/chat', async (req, res) => {
   try {
@@ -346,29 +342,7 @@ app.post('/api/chat', async (req, res) => {
 
     console.log(`📩 User: ${message}`);
 
-    // Special test commands
-    if (message.toLowerCase().includes('are you ai') || 
-        message.toLowerCase().includes('ai powered') ||
-        message.toLowerCase().includes('using ai')) {
-      
-      // Test if Gemini is working
-      try {
-        await callGeminiAPI('Say "Yes, I am AI-powered!" in one sentence.');
-        return res.json({
-          success: true,
-          reply: "✅ Yes! I'm powered by Google's Gemini AI along with a comprehensive knowledge base about Vantage Hall.\n\n🤖 I can answer questions using:\n• 30+ pre-programmed topics (instant)\n• Gemini AI for complex queries\n• Smart fallbacks for reliability\n\nTry asking me about admissions, facilities, sports, medical care, or anything about Vantage Hall!",
-          mode: 'ai-test'
-        });
-      } catch (error) {
-        return res.json({
-          success: true,
-          reply: "I have AI capabilities, but currently running on a comprehensive knowledge base with 30+ topics about Vantage Hall. This ensures fast and accurate responses!\n\nAsk me anything about admissions, facilities, sports, medical care, curriculum, or student life! 😊",
-          mode: 'knowledge-base-test'
-        });
-      }
-    }
-
-    // Check for greeting
+    // Handle greetings
     if (/^(hi|hello|hey|good morning|good afternoon|good evening)/i.test(message.trim())) {
       const greeting = GREETINGS[Math.floor(Math.random() * GREETINGS.length)];
       return res.json({ 
@@ -378,14 +352,14 @@ app.post('/api/chat', async (req, res) => {
       });
     }
 
-    // Try to find answer in knowledge base first
+    // Try knowledge base first
     const knowledgeAnswer = findBestMatch(message);
     
     if (knowledgeAnswer) {
-      console.log(`✅ Knowledge Base Match Found`);
+      console.log(`✅ Knowledge Base Match`);
       return res.json({ 
         success: true, 
-        reply: knowledgeAnswer + "\n\n📚 *From Knowledge Base*",
+        reply: knowledgeAnswer,
         mode: 'knowledge-base'
       });
     }
@@ -394,59 +368,41 @@ app.post('/api/chat', async (req, res) => {
     try {
       const systemPrompt = `You are a friendly assistant for Vantage Hall Girls' Residential School, Dehradun.
 
-IMPORTANT: Answer ONLY questions about Vantage Hall school. For unrelated questions, politely redirect to school-related topics.
+Answer ONLY questions about Vantage Hall. For unrelated questions, redirect to school topics.
 
-School Information:
-Location: Doonga, Dehradun - 248007
-Phone: 0135-2776225
-Email: info@vantagehall.org
-Admissions: +91-8191912999, +91-7078311863
+School Info:
+- Location: Doonga, Dehradun
+- Phone: 0135-2776225
+- Email: info@vantagehall.org
+- CBSE-affiliated all-girls boarding (Classes 3-12)
+- 24x7 medical care with doctor & nurses
+- Sports, Smart classes, Hostel facilities
+- Fee: ₹7.35L-₹8.85L depending on grade
 
-The school is a CBSE-affiliated all-girls boarding school (Classes 3-12) established in 2013 on a 12-acre campus.
+Be warm and helpful. End with a follow-up suggestion.
 
-Key Features:
-- 24x7 medical care with in-house doctor (MBBS, DGO) and 3 nurses
-- Hospital tie-ups: Graphic Era, Synergy, Max Hospital
-- Sports: Football, Cricket, Basketball, Swimming, Badminton, Tennis, etc.
-- Smart classrooms with interactive panels & digital learning
-- Student-teacher ratio: 1:5
-- Nutritionist-planned meals with veg & non-veg options
-- 24x7 hostel supervision with wardens
-- Clubs: Art, Music, Dance, Theatre, Science, IT, Photography, etc.
-- Fee Structure: Classes 3-7 (₹7.35L), 8-10 (₹8.35L), 11-12 (₹8.85L)
-- Streams: Science, Commerce, Humanities
-- Career guidance for NEET, JEE, CLAT, SAT, etc.
+User: ${message}
 
-Guidelines:
-1. Be warm, helpful, and conversational
-2. If the question is about Vantage Hall, provide detailed answer
-3. If question is unrelated (weather, general knowledge, etc.), say: "I'm specifically designed to help with questions about Vantage Hall! I can tell you about our admissions, facilities, curriculum, hostel life, sports, medical care, and more. What would you like to know?"
-4. Always end with a helpful follow-up suggestion
-5. Use emojis appropriately 😊
-
-User question: ${message}
-
-Your response:`;
+Response:`;
 
       const reply = await callGeminiAPI(systemPrompt);
       
-      console.log(`✅ AI Response Generated`);
+      console.log(`✅ AI Response`);
       
       return res.json({ 
         success: true, 
-        reply: reply.trim() + "\n\n🤖 *Powered by AI*",
+        reply: reply.trim(),
         mode: 'ai-powered'
       });
       
     } catch (geminiError) {
-      // Final fallback
-      console.log('⚠️ Using general fallback');
+      console.log('⚠️ Gemini failed, using fallback');
       const fallback = GENERAL_FALLBACK[Math.floor(Math.random() * GENERAL_FALLBACK.length)];
       
       return res.json({ 
         success: true, 
         reply: fallback,
-        mode: 'general-fallback'
+        mode: 'fallback'
       });
     }
 
@@ -455,7 +411,7 @@ Your response:`;
     
     res.json({
       success: true,
-      reply: `Thank you for your message! 😊\n\nFor immediate assistance:\n📞 Call: 0135-2776225\n📧 Email: info@vantagehall.org\n📱 Admissions: +91-8191912999\n\nWe're here to help!`,
+      reply: `Thank you for your message! 😊\n\nFor immediate assistance:\n📞 Call: 0135-2776225\n📧 Email: info@vantagehall.org\n📱 Admissions: +91-8191912999`,
       mode: 'emergency-fallback'
     });
   }
@@ -468,10 +424,10 @@ app.listen(PORT, () => {
   console.log('\n╔═══════════════════════════════════════════╗');
   console.log('║   🎓 Vantage Hall Chatbot Server            ║');
   console.log('╚═══════════════════════════════════════════╝');
-  console.log(`🌐 Server: http://localhost:${PORT}`);
-  console.log(`🧪 Test API: http://localhost:${PORT}/api/test`);
-  console.log(`🤖 AI Model: Gemini 2.5 Flash`);
+  console.log(`🌐 Server running on port ${PORT}`);
   console.log(`📚 Knowledge Base: ${Object.keys(KNOWLEDGE_BASE).length} topics`);
   console.log('╚═══════════════════════════════════════════\n');
-  console.log('🚀 Ready to chat! Open index.html in your browser.\n');
 });
+
+// Export for Vercel
+module.exports = app;
