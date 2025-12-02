@@ -645,11 +645,12 @@
                     ? 'Unable to connect to server. Please check your connection and try again.'
                     : 'Sorry, I encountered an error. Please try again.';
                 
-                addMessage(
-                    `${errorMsg}\n\nYou can also contact us directly:\n📞 0135-2776225\n📧 info@vantagehall.org`,
-                    'bot',
-                    true
-                );
+              addMessage(
+    `${errorMsg}\n\nYou can also contact us directly:\n📞 0135-2776225\n📧 info@vantagehall.org\n🔗 https://vantagehall.org/contact-us/`,
+    'bot',
+    true
+);
+
             } finally {
                 // Reset processing state
                 isProcessing = false;
@@ -776,3 +777,4 @@
 
 </body>
 </html>
+
