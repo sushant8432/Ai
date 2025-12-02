@@ -542,14 +542,13 @@
 
     <script>
         // ==============================================
-        // CONFIGURATION - UPDATED PORT!
+        // CONFIGURATION - UPDATED TO YOUR DEPLOYED BACKEND
         // ==============================================
-        const API_URL = 'https://ai-6cwi.vercel.app/'; // CHANGED TO PORT 5000
+        const API_URL = 'https://ai-6cwi.vercel.app/api/chat';
         
         // ==============================================
         // DOM ELEMENTS
         // ==============================================
-
         const chatToggle = document.getElementById('chatToggle');
         const chatContainer = document.getElementById('chatContainer');
         const chatBubble = document.getElementById('chatBubble');
@@ -582,13 +581,13 @@
         });
 
         // ==============================================
-        // SEND MESSAGE FUNCTION (AI-POWERED)
+        // SEND MESSAGE FUNCTION
         // ==============================================
         async function sendMessage() {
             const message = userInput.value.trim();
             if (message === '' || isProcessing) return;
 
-            // Add user message to UI
+            // Add user message
             addMessage(message, 'user');
             userInput.value = '';
             
@@ -600,7 +599,7 @@
             scrollToBottom();
 
             try {
-                // Call AI API
+                // Call backend API
                 const response = await fetch(API_URL, {
                     method: 'POST',
                     headers: {
@@ -622,7 +621,7 @@
                 typingIndicator.style.display = 'none';
                 
                 if (data.success && data.reply) {
-                    // Add AI response to UI
+                    // Add bot response
                     addMessage(data.reply, 'bot');
                     
                     // Update conversation history
@@ -631,20 +630,19 @@
                         { role: 'assistant', content: data.reply }
                     );
                     
-                    // Keep only last 20 messages (10 exchanges)
+                    // Keep only last 20 messages
                     if (conversationHistory.length > 20) {
                         conversationHistory = conversationHistory.slice(-20);
                     }
                 } else {
-                    throw new Error(data.error || 'Invalid response from server');
+                    throw new Error(data.error || 'Invalid response');
                 }
             } catch (error) {
                 typingIndicator.style.display = 'none';
                 console.error('Error:', error);
                 
-                // Show friendly error message
                 const errorMsg = error.message.includes('Failed to fetch') 
-                    ? 'Unable to connect to the server. Please make sure the backend is running on http://localhost:5000'
+                    ? 'Unable to connect to server. Please check your connection and try again.'
                     : 'Sorry, I encountered an error. Please try again.';
                 
                 addMessage(
@@ -663,7 +661,7 @@
 
         // ==============================================
         // ADD MESSAGE TO CHAT
-        // ==============================================
+        // ==============================================//
         function addMessage(text, sender, isError = false) {
             const messageDiv = document.createElement('div');
             messageDiv.className = `message ${sender}`;
@@ -675,11 +673,11 @@
                 contentDiv.classList.add('error-message');
             }
             
-            // Format text (preserve line breaks and convert to HTML)
+            // Format text
             const formattedText = text
                 .replace(/\n/g, '<br>')
-                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') // Bold
-                .replace(/\*(.*?)\*/g, '<em>$1</em>'); // Italic
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\*(.*?)\*/g, '<em>$1</em>');
             
             contentDiv.innerHTML = formattedText;
             
@@ -722,10 +720,10 @@
         // EVENT LISTENERS
         // ==============================================
         
-        // Send button click
+        // Send button
         sendBtn.addEventListener('click', sendMessage);
 
-        // Enter key press
+        // Enter key
         userInput.addEventListener('keypress', (e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
@@ -742,9 +740,8 @@
             }
         });
 
-        // Keyboard shortcuts
+        // Escape to close
         document.addEventListener('keydown', (e) => {
-            // Escape to close chat
             if (e.key === 'Escape' && chatContainer.classList.contains('active')) {
                 chatToggle.click();
             }
@@ -761,22 +758,21 @@
         }, 1000);
 
         // ==============================================
-        // CONNECTION TEST ON LOAD
+        // CONNECTION TEST
         // ==============================================
         window.addEventListener('load', async () => {
             try {
-                const response = await fetch('https://ai-6cwi.vercel.app/');
+                const response = await fetch('https://ai-6cwi.vercel.app/api/health');
                 if (response.ok) {
                     console.log('✅ Connected to backend successfully!');
                 } else {
-                    console.warn('⚠️ Backend server is not responding properly.');
+                    console.warn('⚠️ Backend server response:', response.status);
                 }
             } catch (error) {
-                console.warn('❌ Cannot connect to backend. Make sure server is running on port 5000');
+                console.warn('❌ Cannot connect to backend:', error.message);
             }
         });
     </script>
 
 </body>
-
 </html>
