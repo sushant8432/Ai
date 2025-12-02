@@ -9,7 +9,7 @@ const PORT = process.env.PORT || 5000;
 
 // CORS Configuration - Allow your frontend
 app.use(cors({
-  origin: ['https://ai-hso7.vercel.app', 'http://localhost:3000'],
+  origin: ['https://ai-326.vercel.app/', 'http://localhost:3000'],
   methods: ['GET', 'POST', 'OPTIONS'],
   credentials: true
 }));
@@ -431,3 +431,4 @@ app.listen(PORT, () => {
 
 // Export for Vercel
 module.exports = app;
+
